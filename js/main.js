@@ -10,7 +10,7 @@
 
 const ctx = canvas.getContext("2d");
 const config = {
-    antSpeed: 10
+    antSpeed: 5
 }
 
 
@@ -34,7 +34,7 @@ class Ant {
         this.x = x;
         this.y = y;
         this.hasFood = false;
-        this.contantSmell = 1;
+        this.contactSmell = 1;
         this.direction = Vector.random(config.antSpeed);
         Ant.all.push(this);
     }
@@ -51,6 +51,9 @@ class Ant {
     move () {
         let angle = Math.atan2(this.direction.y, this.direction.x);
         let change = (Math.random() - 0.5) * 0.5;
+        let ts = this.takeSmell();
+        if (ts) angle = ts;
+
         angle += change;
         
         let x = Math.cos(angle) * config.antSpeed;
@@ -62,7 +65,31 @@ class Ant {
 
         this.goBack();
 
-        this.contantSmell -= 0.005;
+        this.contactSmell -= 0.01;
+    }
+
+    takeSmell () {
+        let dir;
+        let power = 0;
+        let check = (pher) => {
+            let dist = (Math.abs(pher.x - this.x) ** 2 + Math.abs(pher.y - this.y) ** 2) ** 0.5;
+            let newPower = pher.power;
+            if (newPower > power && dist < 50) {
+                power = newPower
+                let x = pher.x - this.x;
+                let y = pher.y - this.y;
+                dir = new Vector(x, y);
+            }
+        }
+
+        if (this.hasFood) Pheromone.fromHome.forEach(check);
+        else Pheromone.fromFood.forEach(check);
+
+        if (power > 0) {
+            return Math.atan2(dir.y, dir.x);
+        }
+
+        return false;    
     }
 
     goBack () {
@@ -88,21 +115,23 @@ class Ant {
     }
 
     trace () {
-        new Pheromone(this.x, this.y, this.hasFood, this.contantSmell);
+        if (this.contactSmell > 0) new Pheromone(this.x, this.y, this.hasFood, this.contactSmell);
     }
 
     eat () {
-        Food.all.forEach(food => {
-            if (food.checkDistant(this)) {
-                this.hasFood = true;
-                food.weight -= 0.001;
-                this.contantSmell = 1;
-            }
-        });
+        if (!this.hasFood) {
+            Food.all.forEach(food => {
+                if (food.checkDistant(this)) {
+                    this.hasFood = true;
+                    food.weight -= 0.001;
+                    this.contactSmell = 1;
+                }
+            });
+        }
 
-        if (home.checkDistant(this)) {
+        if (this.hasFood && home.checkDistant(this)) {
             this.hasFood = false;
-            this.contantSmell = 1;
+            this.contactSmell = 1;
         }
     }
 }
@@ -117,6 +146,13 @@ class Pheromone {
     }
 
     static all = [];
+    static get fromHome () {
+        return Pheromone.all.filter(pher => !pher.type);
+    }
+
+    static get fromFood () {
+        return Pheromone.all.filter(pher => pher.type);
+    }
 
     draw () {
         ctx.beginPath();
@@ -127,7 +163,7 @@ class Pheromone {
     }
 
     evaporate () {
-        this.power -= 0.005;
+        this.power -= 0.001;
     }
 
     static clear () {
@@ -203,7 +239,7 @@ function clear () {
 }
 
 let home = new Home(100, 100);
-let food = new Food(1000, 1000);
+let food = new Food(400, 400);
 
 home.spawn();
 
@@ -216,10 +252,12 @@ function draw () {
     Ant.all.forEach(ant => {
         ant.move();
         ant.eat();
+        ant.trace();
         ant.draw();
     });
 
     Pheromone.all.forEach(pher => {
+        pher.evaporate();
         pher.draw();
     })
 
@@ -227,14 +265,8 @@ function draw () {
 }
 
 function smell () {
-    Ant.all.forEach(ant => {
-        ant.trace();
-    });
-
-    Pheromone.all.forEach(pher => {
-        pher.evaporate();
-    })
+    
 }
 
 setInterval(draw, 50);
-setInterval(smell, 100);
+setInterval(smell, 50);
