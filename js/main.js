@@ -20,11 +20,10 @@ class Vector {
         this.y = y;
     }
 
-    static random (lenght = 1) {
+    static random (length = 1) {
         let way = Math.random() * Math.PI * 2;
         let x = Math.cos(way) * length;
         let y = Math.sin(way) * length;
-
         return new Vector(x, y);
     }
 }
@@ -50,7 +49,7 @@ class Ant {
 
     move () {
         let angle = Math.atan2(this.direction.y, this.direction.x);
-        let change = (Math.random() - 0.5) * 0.5;
+        let change = (Math.random() - 0.5) * 0.7;
         let ts = this.takeSmell();
         if (ts) angle = ts;
 
@@ -74,7 +73,7 @@ class Ant {
         let check = (pher) => {
             let dist = (Math.abs(pher.x - this.x) ** 2 + Math.abs(pher.y - this.y) ** 2) ** 0.5;
             let newPower = pher.power;
-            if (newPower > power && dist < 50) {
+            if (newPower > power && dist <= 15) {
                 power = newPower
                 let x = pher.x - this.x;
                 let y = pher.y - this.y;
@@ -163,7 +162,7 @@ class Pheromone {
     }
 
     evaporate () {
-        this.power -= 0.001;
+        this.power -= 0.005;
     }
 
     static clear () {
@@ -172,11 +171,12 @@ class Pheromone {
 }
 
 class Home {
-    constructor (x, y, ants = 100, radius = 25) {
+    constructor (x, y, ants = 100, radius = 10) {
         this.x = x;
         this.y = y;
         this.ants = ants;
         this.radius = radius;
+        new Pheromone(x, y, false, Number.POSITIVE_INFINITY);
     }
 
     draw () {
@@ -208,19 +208,21 @@ class Home {
 }
 
 class Food {
-    constructor (x, y, radius = 25) {
+    constructor (x, y, radius = 10) {
         this.x = x;
         this.y = y;
         this.weight = 1;
         this.radius = radius;
         Food.all.push(this);
+
+        new Pheromone(x, y, true, Number.POSITIVE_INFINITY);
     }
 
     static all = [];
 
     draw () {
         ctx.beginPath();
-        ctx.fillStyle = `rgba(201, 163, 58, ${this.weight})`;
+        ctx.fillStyle = `rgba(81, 202, 70, ${this.weight})`;
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
         ctx.fill();
     }
@@ -249,6 +251,11 @@ function draw () {
     home.draw();
     food.draw();
 
+    Pheromone.all.forEach(pher => {
+        pher.evaporate();
+        pher.draw();
+    })
+
     Ant.all.forEach(ant => {
         ant.move();
         ant.eat();
@@ -256,17 +263,7 @@ function draw () {
         ant.draw();
     });
 
-    Pheromone.all.forEach(pher => {
-        pher.evaporate();
-        pher.draw();
-    })
-
     Pheromone.clear();
 }
 
-function smell () {
-    
-}
-
 setInterval(draw, 50);
-setInterval(smell, 50);
