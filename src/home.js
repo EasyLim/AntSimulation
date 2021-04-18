@@ -1,0 +1,1 @@
+export default new Home(100, 100);
