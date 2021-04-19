@@ -2,7 +2,7 @@
 JS canvas ant simulation. Simulation of natural behavior of ants.
 
 ## Installation
-For developers:
+For developers (yarn is needed):
 ```
 $ git clone https://github.com/EasyLim/ant-simulation.git
 $ yarn install
